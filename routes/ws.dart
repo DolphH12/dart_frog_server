@@ -15,7 +15,7 @@ Future<Response> onRequest(RequestContext context) async {
 
         for (final client in clients) {
           if (client != channel) {
-            client.sink.add('$channel: $message');
+            client.sink.add(message);
           }
         }
       },
