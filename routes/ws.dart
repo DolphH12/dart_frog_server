@@ -26,16 +26,16 @@ Future<Response> onRequest(RequestContext context) async {
         players.add(player);
         currentPlayer = player;
 
-        channel.sink.add({
+        channel.sink.add(jsonEncode({
           'type': 'player_list',
           'players': players.map((p) => p.toJson()).toList(),
-        });
+        }));
 
         for (final other in players.where((p) => p != player)) {
-          other.channel.sink.add({
+          other.channel.sink.add(jsonEncode({
             'type': 'player_joined',
             'player': player.toJson(),
-          });
+          }));
         }
       }
 
@@ -60,10 +60,12 @@ Future<Response> onRequest(RequestContext context) async {
       if (currentPlayer != null) {
         players.remove(currentPlayer);
         for (final other in players) {
-          other.channel.sink.add({
-            'type': 'player_left',
-            'id': currentPlayer!.id,
-          });
+          other.channel.sink.add(
+            jsonEncode({
+              'type': 'player_left',
+              'id': currentPlayer!.id,
+            }),
+          );
         }
       }
     });
