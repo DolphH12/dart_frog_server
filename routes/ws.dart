@@ -1,31 +1,69 @@
+import 'dart:convert';
+
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_web_socket/dart_frog_web_socket.dart';
 
+import '../models/player.dart';
+
 final List<WebSocketChannel> clients = [];
+final List<Player> players = [];
 
 Future<Response> onRequest(RequestContext context) async {
   final handler = webSocketHandler((channel, protocol) {
-    clients.add(channel);
+    Player? currentPlayer;
 
-    print('Cliente conectado');
+    channel.stream.listen((data) {
+      final msg = jsonDecode(data.toString()) as Map<String, dynamic>;
+      final type = msg['type'];
 
-    channel.stream.listen(
-      (message) {
-        print('Mensaje recibido: $message');
+      if (type == 'join') {
+        final player = Player(
+          id: msg['id'] as String,
+          name: msg['name'] as String,
+          character: msg['character'] as String,
+          channel: channel,
+        );
+        players.add(player);
+        currentPlayer = player;
 
-        for (final client in clients) {
-          if (client != channel) {
-            client.sink.add(message);
-          }
+        channel.sink.add({
+          'type': 'player_list',
+          'players': players.map((p) => p.toJson()).toList(),
+        });
+
+        for (final other in players.where((p) => p != player)) {
+          other.channel.sink.add({
+            'type': 'player_joined',
+            'player': player.toJson(),
+          });
         }
-      },
-      onDone: () {
-        print('Cliente desconectado');
-      },
-      onError: (e) {
-        print('Error en el canal');
-      },
-    );
+      }
+
+      if (type == 'move') {
+        final p = players.firstWhere((p) => p.id == msg['id'] as String)
+          ..x = msg['x'] as double
+          ..y = msg['y'] as double;
+
+        for (final other in players.where((o) => o.id != p.id)) {
+          other.channel.sink.add({
+            'type': 'player_moved',
+            'id': p.id,
+            'x': p.x,
+            'y': p.y,
+          });
+        }
+      }
+    }, onDone: () {
+      if (currentPlayer != null) {
+        players.remove(currentPlayer);
+        for (final other in players) {
+          other.channel.sink.add({
+            'type': 'player_left',
+            'id': currentPlayer!.id,
+          });
+        }
+      }
+    });
   });
 
   return handler(context);
