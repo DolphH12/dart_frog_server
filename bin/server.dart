@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
-import '../routes/ws(Anterior).dart' as ws_handler;
+import '../routes/ws.dart' as ws_handler;
 
 void main() async {
   final ip = InternetAddress.anyIPv4;
