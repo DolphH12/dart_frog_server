@@ -45,12 +45,15 @@ Future<Response> onRequest(RequestContext context) async {
           ..y = msg['y'] as double;
 
         for (final other in players.where((o) => o.id != p.id)) {
-          other.channel.sink.add({
-            'type': 'player_moved',
-            'id': p.id,
-            'x': p.x,
-            'y': p.y,
-          });
+          other.channel.sink.add(
+            jsonEncode({
+              'type': 'player_moved',
+              'id': p.id,
+              'x': p.x,
+              'y': p.y,
+              'direction': msg['direction'],
+            }),
+          );
         }
       }
     }, onDone: () {
